@@ -7,7 +7,9 @@ const mongoose = require("mongoose");
 const itemSchema = require("./model/listchat");
 // app.use(express.static("public"));
 
-const urlLocal = "mongodb://localhost:27017/admin";
+// const urlLocal = "mongodb://localhost:27017/admin";
+const urlLocal =
+  "mongodb+srv://tan:iakmEAeuJskmhJyr@cluster0.ephpr.mongodb.net/node_mongodb?retryWrites=true&w=majority";
 try {
   mongoose.connect(
     urlLocal,
@@ -25,7 +27,7 @@ const port = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "https://localhost:3000",
+    origin: "https://socketioclient.herokuapp.com/",
     methods: ["GET", "POST"],
   },
 });
