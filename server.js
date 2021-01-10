@@ -5,11 +5,12 @@ const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const itemSchema = require("./model/listchat");
+const Users = require("./model/users");
 // app.use(express.static("public"));
 
-// const urlLocal = "mongodb://localhost:27017/admin";
-const urlLocal =
-  "mongodb+srv://tan:iakmEAeuJskmhJyr@cluster0.ephpr.mongodb.net/node_mongodb?retryWrites=true&w=majority";
+const urlLocal = "mongodb://localhost:27017/admin";
+// const urlLocal =
+//   "mongodb+srv://tan:iakmEAeuJskmhJyr@cluster0.ephpr.mongodb.net/node_mongodb?retryWrites=true&w=majority";
 try {
   mongoose.connect(
     urlLocal,
@@ -27,7 +28,8 @@ const port = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "https://socketioclient.herokuapp.com/",
+    // origin: "https://socketioclient.herokuapp.com/",
+    origin: "https://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
@@ -39,29 +41,69 @@ io.on("connection", (socket) => {
   // socket.emit("an event", { some: "data" });
   // console.log(socket.rooms);
   // socket.join("room1");
-  console.log(arrUser);
   // console.log(socket.rooms); // Set { <socket.id>, "room1" }
-  socket.on("login", (data) => {
-    if (arrUser.indexOf(data) >= 0) {
-      socket.emit("dktenthatbai");
-    } else {
-      arrUser.push(data);
-      socket.Username = data;
-      socket.emit("dktenthanhcong", data);
-      io.sockets.emit("dsuser", arrUser);
-      //lấy nội dung chat hiện tại gửi về user đăng nhập thành công
-      itemSchema
-        .find()
-        .exec()
-        .then((doc) => {
-          console.log(doc);
-          io.sockets.emit("server-send-data", doc);
-        })
-        .catch((err) => {
-          console.log(err);
-          res.status(500).send({ error: err });
-        });
+  socket.on("signup", async (username, passwold) => {
+    const usersignup = new Users({
+      username: username,
+      passwold: passwold,
+    });
+    try {
+      await usersignup.save();
+    } catch (error) {
+      console.log(error);
     }
+  });
+  socket.on("login", (username, passwold) => {
+    // if (arrUser.indexOf(data) >= 0) {
+    //   socket.emit("dktenthatbai");
+    // }
+    console.log("đã gửi data: " + username + " - " + passwold);
+    Users.find({ username: username, passwold: passwold })
+      .exec()
+      .then((data) => {
+        console.log("req: " + data[0]);
+        console.log(data[0].username);
+        if (data[0].username == username && data[0].passwold == passwold) {
+          arrUser.push(username);
+          socket.Username = username;
+          socket.emit("dktenthanhcong", username);
+          io.sockets.emit("dsuser", arrUser);
+          //lấy nội dung chat hiện tại gửi về user đăng nhập thành công
+          itemSchema
+            .find()
+            .exec()
+            .then((doc) => {
+              io.sockets.emit("server-send-data", doc);
+            })
+            .catch((err) => {
+              console.log(err);
+              res.status(500).send({ error: err });
+            });
+        } else {
+          socket.emit("dktenthatbai");
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    // else {
+    //   arrUser.push(data);
+    //   socket.Username = data;
+    //   socket.emit("dktenthanhcong", data);
+    //   io.sockets.emit("dsuser", arrUser);
+    //   //lấy nội dung chat hiện tại gửi về user đăng nhập thành công
+    //   itemSchema
+    //     .find()
+    //     .exec()
+    //     .then((doc) => {
+    //       console.log(doc);
+    //       io.sockets.emit("server-send-data", doc);
+    //     })
+    //     .catch((err) => {
+    //       console.log(err);
+    //       res.status(500).send({ error: err });
+    //     });
+    // }
   });
 
   socket.on("logout", () => {
